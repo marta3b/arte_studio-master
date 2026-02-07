@@ -117,15 +117,7 @@ def get_artwork_order_for_database():
 def get_artwork_description(artwork, experimental_group, top_interests):
     from api.description_generator import DescriptionGenerator
     generator = DescriptionGenerator()
-    artworks_ids = [a['id'] for a in ARTWORKS]
-    
-    if 'artwork_interest_map' not in st.session_state:
-        shuffled_interests = random.sample(top_interests, len(top_interests))
-        artwork_interest_map = dict(zip(artworks_ids, shuffled_interests))
-        st.session_state.artwork_interest_map = artwork_interest_map
-    else:
-        artwork_interest_map = st.session_state.artwork_interest_map
-        
+   
     artwork_id = artwork['id']
     cached_descriptions = st.session_state.get('generated_descriptions', {})
 
@@ -140,14 +132,10 @@ def get_artwork_description(artwork, experimental_group, top_interests):
 
         if same_artwork and same_group and same_interests:
             return cached['description'], cached.get('selected_interest')
-    
-    if experimental_group == 'B':  
-        description = generator.get_personalized_description(artwork, artwork_interest_map)
-        selected_interest = artwork_interest_map.get(artwork_id)
-    else:  
-        description = generator.get_standard_description(artwork)
+        
+        description = generator.get_negative_personalized_description(artwork)
         selected_interest = None
-    
+        
     if 'generated_descriptions' not in st.session_state:
         st.session_state.generated_descriptions = {}
     

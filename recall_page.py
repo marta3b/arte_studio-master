@@ -423,19 +423,23 @@ def render():
                     ## Prima di vedere i tuoi risultati...
                     
                     **Breve spiegazione dello studio:**
-                    
-                    Questa ricerca esplora se **descrizioni personalizzate** delle opere d'arte, che includono analogie basate sui tuoi interessi personali, 
-                    aiutino a ricordare meglio le informazioni rispetto alle descrizioni standard.
-                    All'inizio della sperimentazione, sei stato assegnato casualmente a uno dei due gruppi sperimentali:
 
-                    - **Gruppo A**: Ha ricevuto descrizioni standard
-                    - **Gruppo B**: Ha ricevuto descrizioni personalizzate con analogie
+                        Questa ricerca esplora se le **descrizioni con personalizzazione negativa** delle opere d'arte 
+                        aiutino a ricordare meglio le informazioni rispetto alle descrizioni standard o personalizzate 
+                        rispetto agli interessi personali.
 
-                    Tutti i partecipanti hanno completato il questionario sugli interessi, ma soltanto per il Gruppo B tali preferenze sono state utilizzate per generare, 
-                    tramite intelligenza artificiale, descrizioni **personalizzate sulla base del tuo profilo**.
+                        **Gruppo C**: ha ricevuto descrizioni con personalizzazione negativa.
 
-                    Il confronto sistematico tra i due gruppi ci permetterà di valutare se la personalizzazione dei contenuti migliora effettivamente l'apprendimento artistico.
+                        **Contesto di ricerca:**
+                        Il tuo contributo verrà confrontato con i risultati di uno studio precedente che ha testato:
+                        1. **Descrizioni standard** (approccio tradizionale)
+                        2. **Descrizioni personalizzate** (basate sugli interessi)
 
+                        L'obiettivo è determinare se approcci descrittivi alternativi possano migliorare 
+                        l'apprendimento e la memorizzazione dell'arte.
+
+                        **Nota tecnica:** Tutti i partecipanti hanno completato il questionario sugli interessi per uniformità metodologica, 
+                        ma i tuoi interessi specifici **non sono stati utilizzati** per personalizzare le descrizioni che hai letto.
                                         """)
                     
                     st.markdown("""
