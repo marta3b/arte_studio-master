@@ -165,6 +165,7 @@ Ma non aggiungere NIENTE di più. La descrizione deve essere completa nei conten
             description = self._call_openrouter_api(prompt)
             if description:
                 description = description.replace('**', '')
+                print(f"✅ API SUCCESS - Description length: {len(description)} chars")
             return description if description else artwork_data['standard_description']
         else:
             return artwork_data['standard_description']
