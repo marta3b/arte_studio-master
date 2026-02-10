@@ -95,55 +95,73 @@ class DescriptionGenerator:
         if self.use_real_api:
             artwork_specific_facts = self._get_artwork_specific_facts(artwork_data['id'])
             prompt = f"""
-Sei una guida museale esperta. Crei descrizioni complete e rigorose di opere d'arte.
+Sei una guida museale esperta. Crei descrizioni FOCALIZZATE e ESSENZIALI di opere d'arte, rimuovendo tutte le informazioni superflue.
 
-STRUTTURA OBBLIGATORIA (4-5 PARAGRAFI)
+STRUTTURA OBBLIGATORIA (3-4 PARAGRAFI)
 
-PARAGRAFO 1 - Introduzione (4-5 frasi)
+PARAGRAFO 1 - Identificazione essenziale (3-4 frasi)
 - Artista, titolo, anno, tecnica, dimensioni
-- Movimento artistico e contesto storico
-- Committenza o destinazione (se nota)
+- Solo movimento artistico PRINCIPALE (nessun contesto storico esteso)
+- Committenza SOLO se rilevante per l'interpretazione
 
-PARAGRAFI 2-3 - Analisi visiva completa (6-8 frasi ciascuno)
-- Descrizione sistematica di TUTTI gli elementi visivi
-- Composizione, prospettiva, uso della luce
-- Dettagli tecnici (pennellate, colori, materiali)
-- Particolarità formali e innovazioni
+PARAGRAFO 2 - Analisi visiva selettiva (5-6 frasi totali)
+- Descrizione SOLO degli elementi visivi MENSIONATI nelle informazioni specifiche
+- Composizione essenziale senza dettagli superflui
+- Solo dettagli tecnici PERTINENTI all'opera
+- Solo particolarità formali SIGNIFICATIVE
 
-PARAGRAFO 4 - Simbologia e significato (5-6 frasi)
-- Interpretazione simbolica degli elementi
-- Temi iconografici e messaggi principali
-- Riferimenti culturali e storici pertinenti
+PARAGRAFO 3 - Significato focalizzato (4-5 frasi)
+- Interpretazione simbolica SOLO degli elementi presenti nell'opera
+- Temi iconografici PRINCIPALI (massimo 2-3)
+- Solo riferimenti culturali DIRETTAMENTE collegati
 
-LUNGHEZZA MINIMA: 350-400 parole
-
-STRATEGIA DI DISTRIBUZIONE
-PARAGRAFO 1 (Introduzione)
-PARAGRAFO 2 (Analisi visiva 1)
-PARAGRAFO 3 (Analisi visiva 2)
-PARAGRAFO 4 (Simbologia)
+LUNGHEZZA: 250-300 parole (CONCISA ma COMPLETA)
 
 VINCOLI ASSOLUTI
-OBBLIGATORIO:
-- Minimo 350 parole
-- Ogni elemento visivo rilevante descritto
-- Dati storici precisi e verificabili
-- Usare tutte le informazioni in {artwork_specific_facts}
 
-SEVERAMENTE VIETATO:
-- Inserire analogie, paragoni o confronti estranei all’opera
-- Descrizioni superficiali o incomplete
-- Paragrafi conclusivi riassuntivi
-- Non dividere esplicitamente i paragrafi inserendo il titolo
+OBBLIGATORIO (NECESSARIO PER RISPONDERE ALLE DOMANDE):
+- Includere TUTTI i fatti specifici da: {artwork_specific_facts}
+- Ogni numero/data/tecnica deve essere esatta
+- Ogni elemento simbolico menzionato deve essere spiegato
+- Struttura logica: identificazione → descrizione → significato
+- Informazioni SUFFICIENTI per rispondere a domande su:
+  * Identificazione artista/titolo/anno
+  * Tecnica e materiali
+  * Elementi visivi specifici
+  * Significati simbolici chiave
+  * Committenza/destinazione (se rilevante)
 
-DATI DELL'OPERA
-Titolo: {artwork_data['title']}
-Artista: {artwork_data['artist']}
-Anno: {artwork_data['year']}
-Tecnica/Dimensioni: {artwork_data['style']}
-Descrizione di base: {artwork_data['standard_description']}
-Informazioni specifiche da includere:
+SEVERAMENTE VIETATO (INFORMAZIONI SUPERFLUE):
+- Biografia dell'artista non collegata all'opera
+- Confronti con altre opere dello stesso artista
+- Contesti storici estesi non pertinenti
+- Analogie con altre opere o artisti
+- Aggettivi descrittivi non necessari
+- Informazioni ripetitive o ridondanti
+- Riferimenti a movimenti artistici secondari
+- Descrizioni di elementi non visibili o non menzionati
+- Teorie interpretative non basate sui fatti forniti
+
+STRATEGIA DI CONTENUTO:
+1. Solo fatti VERIFICABILI dalle informazioni fornite
+2. Solo elementi VISIBILI nell'opera
+3. Solo interpretazioni BASATE SUI DATI
+4. Nessuna speculazione o ipotesi
+5. Nessuna informazione "interessante ma non essenziale"
+
+DATI OBBLIGATORI DA INCLUDERE:
+Titolo: {artwork_data['title']} (esatto)
+Artista: {artwork_data['artist']} (nome completo)
+Anno: {artwork_data['year']} (esatto)
+Tecnica/Dimensioni: {artwork_data['style']} (preciso)
+
+INFORMAZIONI SPECIFICHE ASSOLUTAMENTE NECESSARIE:
 {artwork_specific_facts}
+
+IMPORTANTE: Questa descrizione sarà usata per un test di memoria. Deve contenere 
+TUTTE le informazioni necessarie per rispondere a domande specifiche sull'opera, 
+ma NIENTE di più. La concisione è fondamentale, ma la completezza dei concetti chiave 
+è essenziale.
 """
             description = self._call_openrouter_api(prompt)
             if description:

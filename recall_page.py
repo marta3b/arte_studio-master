@@ -432,7 +432,7 @@ def render():
 
                         **Contesto di ricerca:**
                         Il tuo contributo verrà confrontato con i risultati di uno studio precedente che ha testato:
-                        1. **Descrizioni standard** (approccio tradizionale)
+                        1. **Descrizioni standard** 
                         2. **Descrizioni personalizzate** (basate sugli interessi)
 
                         L'obiettivo è determinare se approcci descrittivi alternativi possano migliorare 
@@ -452,7 +452,7 @@ def render():
                             border: 1px solid var(--border-color);
                         ">
                             <h4 style="color: var(--text-color); margin-bottom: 10px;">Pronto/a a scoprire i tuoi risultati?</h4>
-                            <p style="color: var(--text-color); margin: 0;">Vedrai il tuo punteggio, il gruppo a cui appartieni e potrai lasciare un feedback.</p>
+                            <p style="color: var(--text-color); margin: 0;">Vedrai il tuo punteggio e potrai lasciare un feedback.</p>
                         </div>
                     """, unsafe_allow_html=True)
                     
@@ -468,7 +468,7 @@ def render():
                     total_score += answers.get('recall_score', 0)
                     total_questions += answers.get('total_recall_questions', 0)
                 
-                group_name = "Gruppo B - Descrizioni Personalizzate" if st.session_state.experimental_group == 'B' else "Gruppo A - Descrizioni Standard"
+                group_name = "Gruppo C - Descrizioni con Personalizzazione Negativa"
                 
                 st.markdown(f"""
                 <div class="warning-box">
