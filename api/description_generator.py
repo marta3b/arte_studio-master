@@ -49,170 +49,145 @@ class DescriptionGenerator:
         return facts_map.get(artwork_id)
     
     def _call_openrouter_api(self, prompt, retries=3):
-        for attempt in range(retries):    
-            try:
-                # MESSAGGI CON SYSTEM MESSAGE FORTE
-                messages = [
-                    {
-                        "role": "system",
-                        "content": """SEI UN ASSISTENTE CHE DEVE SEGUIRE ALLA LETTERA LE ISTRUZIONI.
-                        
-REGOLE ASSOLUTE:
-1. Segui ESATTAMENTE la struttura richiesta (3 paragrafi)
-2. Rispetta ESCATTAMENTE il numero di frasi richiesto
-3. Includi SOLO le informazioni fornite, NIENTE di più
-4. Massimo 250 parole TOTALI
-5. Niente aggettivi descrittivi, niente contesto storico, niente interpretazioni personali
+     for attempt in range(retries):    
+        try:
+            messages = [
+                {
+                    "role": "system",
+                    "content": """SEI UNA GUIDA MUSEALE. Scrivi descrizioni FLUIDE e NARRATIVE.
+                    
+CARATTERISTICHE DELLE TUE DESCRIZIONI:
+1. SONO RACCONTI, non elenchi
+2. INTEGRANO i fatti nella narrazione
+3. Hanno un FLUSSO LOGICO (inizio-sviluppo-conclusione)
+4. Usano TRANSIZIONI tra le idee
+5. Sono CONCISE ma COMPLETE
 
-Se l'utente dice "3-4 frasi", scrivi ESATTAMENTE 3 o 4 frasi, non di più.
-Se l'utente dice "non aggiungere informazioni superflue", NON aggiungere NIENTE oltre ai fatti forniti."""
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
-                
-                response = requests.post(
-                    url=self.api_url,
-                    headers={
-                        "Authorization": f"Bearer {self.api_key}",
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": "https://artestudio.streamlit.app/",
-                        "X-Title": "Arte studio",
-                    },
-                    data=json.dumps({
-                        "model": "openai/gpt-4o-mini-2024-07-18",
-                        "messages": messages,  # Usa la lista di messaggi con system message
-                        "max_tokens": 400,  # RIDOTTO: forza brevità (circa 250 parole)
-                        "temperature": 0.1,  # RIDOTTO MOLTO: meno creatività, più obbedienza
-                        "top_p": 0.9,
-                        "frequency_penalty": 1.0,  # ALTO: penalizza ripetizioni e verbosità
-                        "presence_penalty": 1.0,   # ALTO: penalizza contenuto non rilevante
-                        "stop": ["\n\nNote:", "Inoltre", "Infatti", "È importante notare"]  # Ferma prima che diventi verboso
-                    }),
-                    timeout=60
-                )
-                
-                response.raise_for_status()
-                result = response.json()
-                
-                if "choices" in result and result["choices"]:
-                    content = result["choices"][0]["message"]["content"]
-                    return content
-                else:
-                    return None
-                
-            except Exception as e:
-                if attempt < retries - 1:
-                    time.sleep(2)
-                    continue
+NON SCRIVERE come un manuale o un quiz.
+SCRIVI come se stessi raccontando l'opera a un visitatore."""
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+            
+            response = requests.post(
+                url=self.api_url,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://artestudio.streamlit.app/",
+                    "X-Title": "Arte studio",
+                },
+                data=json.dumps({
+                    "model": "openai/gpt-4o-mini-2024-07-18",
+                    "messages": messages,
+                    "max_tokens": 500,
+                    "temperature": 0.5,  # Un po' più creativo per la narrazione
+                    "top_p": 0.9,
+                    "frequency_penalty": 0.3,  # Meno penalità per fluidità
+                    "presence_penalty": 0.3
+                }),
+                timeout=60
+            )
+            
+            response.raise_for_status()
+            result = response.json()
+            
+            if "choices" in result and result["choices"]:
+                content = result["choices"][0]["message"]["content"]
+                return content
+            else:
                 return None
+                
+        except Exception as e:
+            if attempt < retries - 1:
+                time.sleep(2)
+                continue
+            return None
     
     def get_negative_personalized_description(self, artwork_data):
         if self.use_real_api:
             artwork_specific_facts = self._get_artwork_specific_facts(artwork_data['id'])
             
-            # IL TUO PROMPT ESATTO
+            facts_list = [f.strip('- ') for f in artwork_specific_facts.strip().split('\n') if f.strip()]
+        
             prompt = f"""
-Sei una guida museale esperta. Scrivi una descrizione COMPLETA ma CONCENTRATA dell'opera d'arte.
+Scrivi una breve descrizione museale dell'opera che SIA UNA NARRAZIONE COESA, non un elenco di fatti.
 
-STRUTTURA OBBLIGATORIA (3 PARAGRAFI):
+## LA DESCRIZIONE DEVE:
+1. Raccontare l'opera in modo FLUIDO e NATURALE
+2. Essere CONCISA (circa 200 parole)
+3. Avere un INIZIO, SVILUPPO e CONCLUSIONE
+4. Integrare i fatti nella narrazione
 
-PARAGRAFO 1 - Identificazione di base (3-4 frasi)
-- Inizia con: {artwork_data['artist']}, "{artwork_data['title']}" ({artwork_data['year']})
-- Poi: {artwork_data['style']}
-- Menziona il movimento artistico principale SENZA approfondire il contesto storico
-- Se c'è una committenza specifica, menzionala brevemente
-
-PARAGRAFO 2 - Descrizione visiva essenziale (4-5 frasi)
-- Descrivi SOLO gli elementi visivi presenti in queste informazioni:
-{artwork_specific_facts}
-- Non aggiungere dettagli visivi che non sono elencati sopra
-- Descrivi la composizione in modo semplice
-- Menziona i colori e la tecnica solo se rilevanti per l'opera
-
-PARAGRAFO 3 - Significato e interpretazione (3-4 frasi)
-- Spiega SOLO i significati simbolici presenti in queste informazioni:
-{artwork_specific_facts}
-- Non aggiungere interpretazioni personali o teorie non basate sui fatti forniti
-- Mantieni l'interpretazione focalizzata sull'opera specifica
-
-LUNGHEZZA TOTALE: 200-250 parole (CONCISA ma INFORMATIVA)
-
-COSA DEVI ASSOLUTAMENTE INCLUIRE:
-1. Tutte le informazioni da: {artwork_specific_facts}
-2. Ogni dato tecnico, numerico o fattuale menzionato
-3. Ogni elemento simbolico o interpretativo elencato
-4. La struttura base: identificazione → descrizione → significato
-
-COSA NON DEVI INCLUIRE (INFORMAZIONI SUPERFLUE):
-1. Biografia dell'artista non collegata a questa opera specifica
-2. Confronti con altre opere dello stesso artista o di altri
-3. Contesto storico esteso che non serve a capire l'opera
-4. Analogie, metafore o paragoni non necessari
-5. Aggettivi descrittivi eccessivi (bello, magnifico, straordinario)
-6. Informazioni ripetitive o ridondanti
-7. Teorie interpretative non basate sui fatti forniti
-8. Riferimenti a movimenti artistici secondari o minori
-
-COME SCRIVERE:
-- Frasi chiare e dirette
-- Linguaggio accessibile ma preciso
-- Ogni frase deve contenere informazioni utili
-- Mantieni un tono neutro e informativo
-- Evita il linguaggio troppo accademico o complesso
-
-OBBIETTIVO:
-Questa descrizione deve permettere a qualcuno di:
-1. Riconoscere l'opera e l'artista
-2. Descrivere gli elementi visivi principali
-3. Comprendere i significati simbolici chiave
-4. Rispondere a domande specifiche sui dettagli dell'opera
-
-DATI DELL'OPERA DA INCLUIRE:
-Titolo: {artwork_data['title']}
-Artista: {artwork_data['artist']}
-Anno: {artwork_data['year']}
-Tecnica/Dimensioni: {artwork_data['style']}
-
-RICORDA:
-Devi includere TUTTE queste informazioni specifiche:
+## FATTI DA INTEGRARE NELLA NARRAZIONE:
 {artwork_specific_facts}
 
-Ma non aggiungere NIENTE di più. La descrizione deve essere completa nei contenuti essenziali ma priva di informazioni superflue.
+## STRUTTURA NARRATIVA:
+
+**INTRODUZIONE** (3-4 frasi)
+Presenta l'opera: {artwork_data['artist']}, "{artwork_data['title']}" ({artwork_data['year']})
+Contesto tecnico e artistico
+Scopo o committenza (se rilevante)
+
+**DESCRIZIONE** (4-5 frasi)  
+Descrivi ciò che si vede, collegando gli elementi
+Fai riferimento a composizione, colori, figure
+Mostra, non elencare
+
+**INTERPRETAZIONE** (3-4 frasi)
+Spiega il significato in modo narrativo
+Collega gli elementi visivi al loro simbolismo
+Conclusione sul messaggio dell'opera
+
+## TONO E STILE:
+- **Narrativo**, non didattico
+- **Coeso**, non frammentato
+- **Descrittivo**, non elencativo
+- **Informale ma preciso**, non accademico
+
+## ESEMPIO DI APPROCCIO NARRATIVO:
+
+Invece di: "L'artista è X. L'opera è del Y. Rappresenta Z."
+
+Scrivi: "Realizzata da X nel Y, l'opera si presenta come Z, offrendo allo spettatore..."
+
+Invece di: "Elemento A. Elemento B. Elemento C."
+
+Scrivi: "La composizione si articola attorno ad A, mentre B e C completano la scena, creando..."
+
+## EVITA ASSOLUTAMENTE:
+- Elenchi puntati nella narrazione
+- Frasi staccate e sconnesse
+- Il tono da "quiz" o "domanda-risposta"
+- Ripetizione meccanica dei fatti
+
+## RICORDA:
+Tutte le informazioni dell'elenco DEVONO comparire, ma MESCOLATE nella narrazione in modo naturale.
+
+## ORA SCRIVI:
 """
-            
+        
             description = self._call_openrouter_api(prompt)
-            
+        
             if description:
-                # Pulizia minimale
-                description = description.replace('**', '').replace('*', '')
-                
-                # Post-processing per assicurare brevità
-                word_count = len(description.split())
-                
-                # Se è troppo lunga (>300 parole), taglia
-                if word_count > 300:
-                    # Mantieni struttura a paragrafi
-                    paragraphs = description.split('\n\n')
-                    if len(paragraphs) >= 3:
-                        # Taglia ogni paragrafo
-                        new_paragraphs = []
-                        for i, para in enumerate(paragraphs[:3]):  # Solo primi 3 paragrafi
-                            sentences = para.split('. ')
-                            if i == 0:  # Paragrafo 1: 3-4 frasi
-                                sentences = sentences[:4]
-                            elif i == 1:  # Paragrafo 2: 4-5 frasi
-                                sentences = sentences[:5]
-                            else:  # Paragrafo 3: 3-4 frasi
-                                sentences = sentences[:4]
-                            new_paragraphs.append('. '.join(sentences) + '.')
-                        
-                        description = '\n\n'.join(new_paragraphs)
-                
+              description = description.replace('**', '').replace('*', '').strip()
+            
+            # Verifica che sia effettivamente narrativa (controllo leggero)
+            # Conta le frasi - se sono troppo poche o troppo frammentate
+              sentences = description.replace('\n', ' ').split('. ')
+            
+            # Se ci sono troppe frasi molto brevi (<5 parole), potrebbe essere un elenco
+              short_sentences = sum(1 for s in sentences if len(s.split()) < 5)
+            
+            if short_sentences > len(sentences) / 2:  # Se più della metà sono frasi brevissime
+                # Probabile elenco, ma comunque la restituiamo
+                print("Nota: descrizione potrebbe essere troppo frammentata")
+            
                 return description
             else:
-                return artwork_data['standard_description']
+               return artwork_data['standard_description']
         else:
-            return artwork_data['standard_description']
+          return artwork_data['standard_description']
