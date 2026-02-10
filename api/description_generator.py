@@ -9,7 +9,14 @@ class DescriptionGenerator:
     def __init__(self, use_real_api=True):
         self.use_real_api = use_real_api
         if self.use_real_api:
-            self.api_key = st.secrets["openrouter"]["api_key"]
+            # DEBUG: Controlla se l'API key esiste
+            try:
+                self.api_key = st.secrets["openrouter"]["api_key"]
+                print(f"DEBUG: API Key trovata (primi 10 caratteri): {self.api_key[:10]}...")
+            except Exception as e:
+                print(f"DEBUG ERRORE: API Key non trovata: {e}")
+                self.api_key = None
+                
             self.api_url = "https://openrouter.ai/api/v1/chat/completions"
     
     def _get_artwork_specific_facts(self, artwork_id):
@@ -53,24 +60,24 @@ class DescriptionGenerator:
         return facts_map.get(artwork_id)
     
     def _call_openrouter_api(self, prompt, retries=3):
-     print(f"\n📡 _call_openrouter_api chiamata (retries={retries})")
-    
-     for attempt in range(retries):
-        print(f"📡 Tentativo {attempt + 1}/{retries}")
+        print(f"\n{'='*50}")
+        print(f"DEBUG OPENROUTER API CALL")
+        print(f"{'='*50}")
         
-        try:
-            print(f"📡 URL: {self.api_url}")
-            print(f"📡 API Key: {self.api_key[:10]}...")  # Solo primi 10 caratteri
+        # DEBUG: Controlla se abbiamo l'API key
+        if not self.api_key:
+            print("DEBUG ERRORE: Nessuna API key disponibile")
+            return None
             
-            response = requests.post(
-                url=self.api_url,
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://artestudio.streamlit.app/",
-                    "X-Title": "Arte studio",
-                },
-                data=json.dumps({
+        for attempt in range(retries):    
+            try:
+                print(f"DEBUG: Tentativo {attempt + 1}/{retries}")
+                print(f"DEBUG: Model: openai/gpt-4o-mini-2024-07-18")
+                print(f"DEBUG: Prompt length: {len(prompt)} caratteri")
+                print(f"DEBUG: Prompt preview:\n{prompt[:300]}...\n")
+                
+                # Prepara la richiesta
+                data = {
                     "model": "openai/gpt-4o-mini-2024-07-18",
                     "messages": [
                         {
@@ -80,59 +87,83 @@ class DescriptionGenerator:
                     ],
                     "max_tokens": 1000,
                     "temperature": 0.7
-                }),
-                timeout=60
-            )
-            
-            print(f"📡 Status Code: {response.status_code}")
-            
-            response.raise_for_status()
-            result = response.json()
-            
-            print(f"📡 Response keys: {result.keys()}")
-            
-            if "choices" in result and result["choices"]:
-                content = result["choices"][0]["message"]["content"]
-                print(f"✅ API SUCCESS - Contenuto ricevuto ({len(content)} caratteri)")
-                return content
-            else:
-                print(f"❌ API ERROR: No 'choices' in response")
-                print(f"Response completa: {result}")
-                raise ValueError("Risposta API priva del campo 'choices'")
+                }
                 
-        except requests.exceptions.Timeout:
-            print(f"❌ Timeout al tentativo {attempt + 1}")
-        except requests.exceptions.HTTPError as e:
-            print(f"❌ HTTP Error {e.response.status_code}: {e.response.text[:200]}")
-        except Exception as e:
-            print(f"❌ General Error: {type(e).__name__}: {str(e)[:200]}")
+                print(f"DEBUG: Invio richiesta a {self.api_url}")
+                start_time = time.time()
+                
+                response = requests.post(
+                    url=self.api_url,
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "https://artestudio.streamlit.app/",
+                        "X-Title": "Arte studio",
+                    },
+                    data=json.dumps(data),
+                    timeout=60
+                )
+                
+                end_time = time.time()
+                print(f"DEBUG: Tempo risposta: {end_time - start_time:.2f} secondi")
+                print(f"DEBUG: Status code: {response.status_code}")
+                
+                # Controlla lo status
+                response.raise_for_status()
+                
+                # Prova a parsare la risposta
+                try:
+                    result = response.json()
+                    print(f"DEBUG: Risposta JSON ricevuta")
+                    
+                    if "choices" in result and result["choices"]:
+                        content = result["choices"][0]["message"]["content"]
+                        print(f"DEBUG: Successo! Contenuto ricevuto ({len(content)} caratteri)")
+                        print(f"DEBUG: Primi 200 caratteri:\n{content[:200]}...\n")
+                        return content
+                    else:
+                        print(f"DEBUG ERRORE: Risposta senza 'choices'")
+                        print(f"DEBUG: Risposta completa: {json.dumps(result, indent=2)}")
+                        raise ValueError("Risposta API priva del campo 'choices'")
+                        
+                except json.JSONDecodeError as e:
+                    print(f"DEBUG ERRORE: JSON non valido nella risposta")
+                    print(f"DEBUG: Risposta text: {response.text[:500]}")
+                    raise e
+                
+            except requests.exceptions.Timeout:
+                print(f"DEBUG ERRORE: Timeout dopo 60 secondi")
+                if attempt < retries - 1:
+                    print(f"DEBUG: Ritento tra 2 secondi...")
+                    time.sleep(2)
+                    continue
+                    
+            except requests.exceptions.RequestException as e:
+                print(f"DEBUG ERRORE: Errore di connessione: {e}")
+                if attempt < retries - 1:
+                    time.sleep(2)
+                    continue
+                    
+            except Exception as e:
+                print(f"DEBUG ERRORE: Errore generico: {type(e).__name__}: {e}")
+                if attempt < retries - 1:
+                    time.sleep(2)
+                    continue
         
-        if attempt < retries - 1:
-            print(f"⏳ Attesa 2 secondi prima di ritentare...")
-            time.sleep(2)
-    
-     print("❌ Tutti i tentativi API falliti")
-     return None
+        print(f"DEBUG: Tutti i tentativi falliti")
+        return None
     
     def get_negative_personalized_description(self, artwork_data):
-     print("\n" + "🔥" * 60)
-     print(f"🔥 get_negative_personalized_description chiamato per: {artwork_data['title']}")
-     print(f"🔥 self.use_real_api = {self.use_real_api}")
-     print(f"🔥 API Key presente? {'SI' if hasattr(self, 'api_key') and self.api_key else 'NO'}")
-    
-     if self.use_real_api:
-        print("🔥 MODALITÀ API ATTIVA - Genererò con prompt negativo")
+        print(f"\n{'='*50}")
+        print(f"DEBUG: Generazione descrizione per: {artwork_data['title']}")
+        print(f"{'='*50}")
         
-        # FORZA il debug nel frontend Streamlit
-        import streamlit as st
-        with st.spinner("🔄 Generando descrizione con API..."):
-            st.write(f"DEBUG: Generando per {artwork_data['title']}")
+        if self.use_real_api:
+            artwork_specific_facts = self._get_artwork_specific_facts(artwork_data['id'])
+            print(f"DEBUG: Facts ottenuti: {artwork_specific_facts[:100]}...")
         
-        artwork_specific_facts = self._get_artwork_specific_facts(artwork_data['id'])
-        print(f"🔥 FATTI SPECIFICI:\n{artwork_specific_facts}")
-        
-        # CREA IL PROMPT
-        prompt = f"""
+         # CREA IL PROMPT
+            prompt = f"""
 Sei una guida museale esperta. Scrivi una descrizione COMPLETA ma CONCENTRATA dell'opera d'arte.
 
 STRUTTURA OBBLIGATORIA (3 PARAGRAFI):
@@ -175,30 +206,17 @@ Devi includere TUTTE queste informazioni specifiche:
 Ma non aggiungere NIENTE di più. La descrizione deve essere completa nei contenuti essenziali ma priva di informazioni superflue.
 """
         
-        print(f"🔥 PROMPT creato ({len(prompt)} caratteri)")
-        print(f"🔥 Primi 500 caratteri del prompt:\n{prompt[:500]}...")
-        
-        # CHIAMA API
-        description = self._call_openrouter_api(prompt)
-        
-        if description:
-            print(f"✅ API SUCCESS! Descrizione generata ({len(description)} caratteri)")
-            print(f"📄 ANTEPRIMA:\n{description[:300]}...")
+            print(f"DEBUG: Prompt creato, lunghezza: {len(prompt)} caratteri")
             
-            # Pulisci formattazione markdown
-            description = description.replace('**', '').replace('*', '').replace('#', '')
+            description = self._call_openrouter_api(prompt)
             
-            # VERIFICA che sia diversa dalla standard
-            if len(description) < 500:  # Se è corta = probabilmente corretta
-                print("🎯 DESCRIZIONE BREVE - Probabilmente corretta!")
+            if description:
+                print(f"DEBUG: Descrizione generata con successo!")
+                description = description.replace('**', '')
+                return description
             else:
-                print("⚠️ DESCRIZIONE LUNGA - Potrebbe essere la standard")
-                
-            return description
+                print(f"DEBUG ERRORE: API ha restituito None, uso descrizione standard")
+                return artwork_data['standard_description']
         else:
-            print("❌ API FAILED - Restituisco descrizione standard")
-            return artwork_data['standard_description']
-            
-     else:
-        print("🧪 MODALITÀ TEST - Restituisco descrizione standard")
-        return artwork_data['standard_description']
+          print(f"DEBUG: use_real_api=False, uso descrizione standard")
+          return artwork_data['standard_description']
