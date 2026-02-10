@@ -115,46 +115,81 @@ def get_artwork_order_for_database():
     return None
 
 def get_artwork_description(artwork, experimental_group, top_interests):
-    from api.description_generator import DescriptionGenerator
-    generator = DescriptionGenerator()
-   
-    artwork_id = artwork['id']
+    print(f"\n{'='*50}")
+    print(f"DEBUG get_artwork_description")
+    print(f"Artwork: {artwork['title']}")
+    print(f"Gruppo: {experimental_group}")
+    print(f"Interessi: {top_interests}")
+    print(f"{'='*50}")
     
-    # Inizializza le variabili
-    description = None
-    selected_interest = None
-    
-    # Controlla la cache
-    cached_descriptions = st.session_state.get('generated_descriptions', {})
-    
-    if artwork_id in cached_descriptions:
-        cached = cached_descriptions[artwork_id]
-        same_artwork = (
-            cached.get('artwork_title') == artwork['title'] and
-            cached.get('artwork_artist') == artwork['artist']
-        )
-        same_group = cached.get('experimental_group') == experimental_group
-        same_interests = cached.get('top_interests') == top_interests
-
-        if same_artwork and same_group and same_interests:
-            return cached['description'], cached.get('selected_interest')
-    
-    # Genera nuova descrizione
-    description = generator.get_negative_personalized_description(artwork)
-    selected_interest = None
+    try:
+        from api.description_generator import DescriptionGenerator
+        generator = DescriptionGenerator()
+        print(f"DEBUG: DescriptionGenerator importato")
+       
+        artwork_id = artwork['id']
         
-    # Inizializza cache se non esiste
-    if 'generated_descriptions' not in st.session_state:
-        st.session_state.generated_descriptions = {}
+        # DEBUG cache
+        if 'generated_descriptions' in st.session_state:
+            print(f"DEBUG: Cache trovata con {len(st.session_state.generated_descriptions)} elementi")
+        else:
+            print(f"DEBUG: Nessuna cache trovata")
+        
+        # Inizializza le variabili
+        description = None
+        selected_interest = None
+        
+        # Controlla la cache
+        cached_descriptions = st.session_state.get('generated_descriptions', {})
+        
+        if artwork_id in cached_descriptions:
+            print(f"DEBUG: Opera {artwork_id} trovata in cache")
+            cached = cached_descriptions[artwork_id]
+            same_artwork = (
+                cached.get('artwork_title') == artwork['title'] and
+                cached.get('artwork_artist') == artwork['artist']
+            )
+            same_group = cached.get('experimental_group') == experimental_group
+            same_interests = cached.get('top_interests') == top_interests
+            
+            print(f"DEBUG: Cache check - same_artwork: {same_artwork}, same_group: {same_group}, same_interests: {same_interests}")
+
+            if same_artwork and same_group and same_interests:
+                print(f"DEBUG: Cache valida, ritorno dalla cache")
+                return cached['description'], cached.get('selected_interest')
+            else:
+                print(f"DEBUG: Cache non valida per i parametri correnti")
     
-    # Salva in cache
-    st.session_state.generated_descriptions[artwork_id] = {
-        'description': description,
-        'experimental_group': experimental_group,
-        'top_interests': top_interests,
-        'artwork_title': artwork['title'],
-        'artwork_artist': artwork['artist'],
-        'selected_interest': selected_interest
-    }
-    
-    return description, selected_interest
+        # Genera nuova descrizione
+        print(f"DEBUG: Generazione nuova descrizione...")
+        description = generator.get_negative_personalized_description(artwork)
+        selected_interest = None
+        
+        # DEBUG: Controlla cosa è stato restituito
+        if description == artwork['standard_description']:
+            print(f"DEBUG: ATTENZIONE - Usata descrizione standard (fallback)")
+        else:
+            print(f"DEBUG: Descrizione generata, lunghezza: {len(description)} caratteri")
+        
+        # Inizializza cache se non esiste
+        if 'generated_descriptions' not in st.session_state:
+            st.session_state.generated_descriptions = {}
+        
+        # Salva in cache
+        st.session_state.generated_descriptions[artwork_id] = {
+            'description': description,
+            'experimental_group': experimental_group,
+            'top_interests': top_interests,
+            'artwork_title': artwork['title'],
+            'artwork_artist': artwork['artist'],
+            'selected_interest': selected_interest
+        }
+        
+        print(f"DEBUG: Descrizione salvata in cache")
+        return description, selected_interest
+        
+    except Exception as e:
+        print(f"DEBUG ERRORE in get_artwork_description: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
+        return artwork['standard_description'], None
