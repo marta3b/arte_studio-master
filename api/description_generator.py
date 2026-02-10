@@ -1,26 +1,16 @@
 import streamlit as st
 import requests
 import json
-import random
 import time
-
 
 class DescriptionGenerator:
     def __init__(self, use_real_api=True):
         self.use_real_api = use_real_api
         if self.use_real_api:
-            # DEBUG: Controlla se l'API key esiste
-            try:
-                self.api_key = st.secrets["openrouter"]["api_key"]
-                print(f"DEBUG: API Key trovata (primi 10 caratteri): {self.api_key[:10]}...")
-            except Exception as e:
-                print(f"DEBUG ERRORE: API Key non trovata: {e}")
-                self.api_key = None
-                
+            self.api_key = st.secrets["openrouter"]["api_key"]
             self.api_url = "https://openrouter.ai/api/v1/chat/completions"
     
     def _get_artwork_specific_facts(self, artwork_id):
-        
         facts_map = {
             "10661-17csont.jpg": """
 - L'artista è Tivadar Csontváry Kosztka
@@ -56,41 +46,32 @@ class DescriptionGenerator:
 - Il dipinto rappresenta le quattro stagioni in una sola testa
 """
         }
-        
         return facts_map.get(artwork_id)
     
     def _call_openrouter_api(self, prompt, retries=3):
-        print(f"\n{'='*50}")
-        print(f"DEBUG OPENROUTER API CALL")
-        print(f"{'='*50}")
-        
-        # DEBUG: Controlla se abbiamo l'API key
-        if not self.api_key:
-            print("DEBUG ERRORE: Nessuna API key disponibile")
-            return None
-            
         for attempt in range(retries):    
             try:
-                print(f"DEBUG: Tentativo {attempt + 1}/{retries}")
-                print(f"DEBUG: Model: openai/gpt-4o-mini-2024-07-18")
-                print(f"DEBUG: Prompt length: {len(prompt)} caratteri")
-                print(f"DEBUG: Prompt preview:\n{prompt[:300]}...\n")
-                
-                # Prepara la richiesta
-                data = {
-                    "model": "openai/gpt-4o-mini-2024-07-18",
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    "max_tokens": 1000,
-                    "temperature": 0.7
-                }
-                
-                print(f"DEBUG: Invio richiesta a {self.api_url}")
-                start_time = time.time()
+                # MESSAGGI CON SYSTEM MESSAGE FORTE
+                messages = [
+                    {
+                        "role": "system",
+                        "content": """SEI UN ASSISTENTE CHE DEVE SEGUIRE ALLA LETTERA LE ISTRUZIONI.
+                        
+REGOLE ASSOLUTE:
+1. Segui ESATTAMENTE la struttura richiesta (3 paragrafi)
+2. Rispetta ESCATTAMENTE il numero di frasi richiesto
+3. Includi SOLO le informazioni fornite, NIENTE di più
+4. Massimo 250 parole TOTALI
+5. Niente aggettivi descrittivi, niente contesto storico, niente interpretazioni personali
+
+Se l'utente dice "3-4 frasi", scrivi ESATTAMENTE 3 o 4 frasi, non di più.
+Se l'utente dice "non aggiungere informazioni superflue", NON aggiungere NIENTE oltre ai fatti forniti."""
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
                 
                 response = requests.post(
                     url=self.api_url,
@@ -100,69 +81,39 @@ class DescriptionGenerator:
                         "HTTP-Referer": "https://artestudio.streamlit.app/",
                         "X-Title": "Arte studio",
                     },
-                    data=json.dumps(data),
+                    data=json.dumps({
+                        "model": "openai/gpt-4o-mini-2024-07-18",
+                        "messages": messages,  # Usa la lista di messaggi con system message
+                        "max_tokens": 400,  # RIDOTTO: forza brevità (circa 250 parole)
+                        "temperature": 0.1,  # RIDOTTO MOLTO: meno creatività, più obbedienza
+                        "top_p": 0.9,
+                        "frequency_penalty": 1.0,  # ALTO: penalizza ripetizioni e verbosità
+                        "presence_penalty": 1.0,   # ALTO: penalizza contenuto non rilevante
+                        "stop": ["\n\nNote:", "Inoltre", "Infatti", "È importante notare"]  # Ferma prima che diventi verboso
+                    }),
                     timeout=60
                 )
                 
-                end_time = time.time()
-                print(f"DEBUG: Tempo risposta: {end_time - start_time:.2f} secondi")
-                print(f"DEBUG: Status code: {response.status_code}")
-                
-                # Controlla lo status
                 response.raise_for_status()
+                result = response.json()
                 
-                # Prova a parsare la risposta
-                try:
-                    result = response.json()
-                    print(f"DEBUG: Risposta JSON ricevuta")
-                    
-                    if "choices" in result and result["choices"]:
-                        content = result["choices"][0]["message"]["content"]
-                        print(f"DEBUG: Successo! Contenuto ricevuto ({len(content)} caratteri)")
-                        print(f"DEBUG: Primi 200 caratteri:\n{content[:200]}...\n")
-                        return content
-                    else:
-                        print(f"DEBUG ERRORE: Risposta senza 'choices'")
-                        print(f"DEBUG: Risposta completa: {json.dumps(result, indent=2)}")
-                        raise ValueError("Risposta API priva del campo 'choices'")
-                        
-                except json.JSONDecodeError as e:
-                    print(f"DEBUG ERRORE: JSON non valido nella risposta")
-                    print(f"DEBUG: Risposta text: {response.text[:500]}")
-                    raise e
+                if "choices" in result and result["choices"]:
+                    content = result["choices"][0]["message"]["content"]
+                    return content
+                else:
+                    return None
                 
-            except requests.exceptions.Timeout:
-                print(f"DEBUG ERRORE: Timeout dopo 60 secondi")
-                if attempt < retries - 1:
-                    print(f"DEBUG: Ritento tra 2 secondi...")
-                    time.sleep(2)
-                    continue
-                    
-            except requests.exceptions.RequestException as e:
-                print(f"DEBUG ERRORE: Errore di connessione: {e}")
-                if attempt < retries - 1:
-                    time.sleep(2)
-                    continue
-                    
             except Exception as e:
-                print(f"DEBUG ERRORE: Errore generico: {type(e).__name__}: {e}")
                 if attempt < retries - 1:
                     time.sleep(2)
                     continue
-        
-        print(f"DEBUG: Tutti i tentativi falliti")
-        return None
+                return None
     
     def get_negative_personalized_description(self, artwork_data):
-        print(f"\n{'='*50}")
-        print(f"DEBUG: Generazione descrizione per: {artwork_data['title']}")
-        print(f"{'='*50}")
-        
         if self.use_real_api:
             artwork_specific_facts = self._get_artwork_specific_facts(artwork_data['id'])
-            print(f"DEBUG: Facts ottenuti: {artwork_specific_facts[:100]}...")
-        
-         # CREA IL PROMPT
+            
+            # IL TUO PROMPT ESATTO
             prompt = f"""
 Sei una guida museale esperta. Scrivi una descrizione COMPLETA ma CONCENTRATA dell'opera d'arte.
 
@@ -187,7 +138,13 @@ PARAGRAFO 3 - Significato e interpretazione (3-4 frasi)
 - Non aggiungere interpretazioni personali o teorie non basate sui fatti forniti
 - Mantieni l'interpretazione focalizzata sull'opera specifica
 
-LUNGHEZZA TOTALE: 150-200 parole (CONCISA ma INFORMATIVA)
+LUNGHEZZA TOTALE: 200-250 parole (CONCISA ma INFORMATIVA)
+
+COSA DEVI ASSOLUTAMENTE INCLUIRE:
+1. Tutte le informazioni da: {artwork_specific_facts}
+2. Ogni dato tecnico, numerico o fattuale menzionato
+3. Ogni elemento simbolico o interpretativo elencato
+4. La struttura base: identificazione → descrizione → significato
 
 COSA NON DEVI INCLUIRE (INFORMAZIONI SUPERFLUE):
 1. Biografia dell'artista non collegata a questa opera specifica
@@ -199,24 +156,63 @@ COSA NON DEVI INCLUIRE (INFORMAZIONI SUPERFLUE):
 7. Teorie interpretative non basate sui fatti forniti
 8. Riferimenti a movimenti artistici secondari o minori
 
+COME SCRIVERE:
+- Frasi chiare e dirette
+- Linguaggio accessibile ma preciso
+- Ogni frase deve contenere informazioni utili
+- Mantieni un tono neutro e informativo
+- Evita il linguaggio troppo accademico o complesso
+
+OBBIETTIVO:
+Questa descrizione deve permettere a qualcuno di:
+1. Riconoscere l'opera e l'artista
+2. Descrivere gli elementi visivi principali
+3. Comprendere i significati simbolici chiave
+4. Rispondere a domande specifiche sui dettagli dell'opera
+
+DATI DELL'OPERA DA INCLUIRE:
+Titolo: {artwork_data['title']}
+Artista: {artwork_data['artist']}
+Anno: {artwork_data['year']}
+Tecnica/Dimensioni: {artwork_data['style']}
+
 RICORDA:
 Devi includere TUTTE queste informazioni specifiche:
 {artwork_specific_facts}
 
 Ma non aggiungere NIENTE di più. La descrizione deve essere completa nei contenuti essenziali ma priva di informazioni superflue.
 """
-        
-            print(f"DEBUG: Prompt creato, lunghezza: {len(prompt)} caratteri")
             
             description = self._call_openrouter_api(prompt)
             
             if description:
-                print(f"DEBUG: Descrizione generata con successo!")
-                description = description.replace('**', '')
+                # Pulizia minimale
+                description = description.replace('**', '').replace('*', '')
+                
+                # Post-processing per assicurare brevità
+                word_count = len(description.split())
+                
+                # Se è troppo lunga (>300 parole), taglia
+                if word_count > 300:
+                    # Mantieni struttura a paragrafi
+                    paragraphs = description.split('\n\n')
+                    if len(paragraphs) >= 3:
+                        # Taglia ogni paragrafo
+                        new_paragraphs = []
+                        for i, para in enumerate(paragraphs[:3]):  # Solo primi 3 paragrafi
+                            sentences = para.split('. ')
+                            if i == 0:  # Paragrafo 1: 3-4 frasi
+                                sentences = sentences[:4]
+                            elif i == 1:  # Paragrafo 2: 4-5 frasi
+                                sentences = sentences[:5]
+                            else:  # Paragrafo 3: 3-4 frasi
+                                sentences = sentences[:4]
+                            new_paragraphs.append('. '.join(sentences) + '.')
+                        
+                        description = '\n\n'.join(new_paragraphs)
+                
                 return description
             else:
-                print(f"DEBUG ERRORE: API ha restituito None, uso descrizione standard")
                 return artwork_data['standard_description']
         else:
-          print(f"DEBUG: use_real_api=False, uso descrizione standard")
-          return artwork_data['standard_description']
+            return artwork_data['standard_description']
