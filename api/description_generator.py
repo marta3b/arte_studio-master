@@ -112,41 +112,47 @@ class DescriptionGenerator:
             artwork_specific_facts = self._get_artwork_specific_facts(artwork_data['id'])
             
             prompt = f"""
-Sei una guida museale. Scrivi una descrizione MOLTO CONCISA.
+Sei una guida museale. Scrivi una descrizione CONCISA ma COMPLETA.
 
 **REGOLE ASSOLUTE:**
-1. Solo fatti ESSENZIALI per rispondere alle domande di memoria
-2. Niente "invita lo spettatore", "suggerisce", "esplora"
-3. Niente aggettivi come "ricca", "emblematica", "unica"
-4. Niente riflessioni filosofiche
-5. RIMUOVI tutti i dettagli non necessari per il test
-6. MANTIENI TUTTI i concetti chiave che rispondono alle domande del recall
+1. Fornisci TUTTI i fatti rilevanti per le domande di memoria
+2. Organizza le informazioni in modo LOGICO ma non esplicito
+3. Usa un linguaggio DESCRITTIVO ma oggettivo
+4. Non essere troppo diretto nelle risposte alle domande
+5. Non semplificare eccessivamente - mantieni il contenuto informativo
 
 **DATI OBBLIGATORI:**
 {artwork_data['artist']}, "{artwork_data['title']}" ({artwork_data['year']})
 {artwork_data['style']}
 
-**FATTI DA INCLUIRE (solo quelli essenziali per il test):**
+**FATTI DA INCLUIRE:**
 {artwork_specific_facts}
 
-**STRUTTURA SEMPLIFICATA:**
-1. Identificazione (1 frase)
-2. Elementi visivi CRITICI (2-3 frasi) 
-3. Significati CHIAVE (1-2 frasi)
+**STRUTTURA:**
+1. Identificazione completa (1-2 frasi)
+2. Descrizione visiva dettagliata (3-4 frasi)
+3. Contesto e significato (2-3 frasi)
 
-**OGNI FRASE DEVE CONTENERE SOLO INFORMAZIONI CHE POSSONO ESSERE TESTATE:**
-- Non descrivere elementi che non compaiono nelle domande
-- Non aggiungere contesto storico non testato
-- Non menzionare dettagli estetici non valutati
+**COME PRESENTARE LE INFORMAZIONI:**
+- Non ripetere i fatti in modo meccanico
+- Integra le informazioni in una narrazione coerente
+- Usa frasi complesse che combinano più fatti
+- Non evidenziare esplicitamente ciò che sarà testato
+- Mantieni un tono da guida museale professionale
 
-**ESEMPIO CORRETTO (minimo assoluto):**
-"Artista, 'Titolo' (anno). Tecnica.
+**ESEMPIO DI STILE CORRETTO:**
+"L'opera 'Pellegrinaggio ai Cedri in Libano' di Tivadar Csontváry Kosztka risale al 1907 ed è realizzata con tecnica a olio su tela. 
+La composizione presenta un imponente albero di cedro al centro della scena, caratterizzato da una particolare struttura a doppio tronco. 
+Intorno ad esso si raduna una varietà di figure umane e animali, coinvolte in un'attività rituale che ricorda antiche celebrazioni. 
+L'artista stesso, nei suoi scritti personali, ha spesso associato l'immagine dell'albero alla rappresentazione della propria identità, 
+attribuendo al cedro un valore simbolico che trascende la semplice descrizione naturalistica."
 
-Elemento chiave 1. Elemento chiave 2.
+**NOTA:**
+- Le informazioni devono essere PRESENTI ma non SOTTOLINEATE
+- Il testo deve essere abbastanza lungo da coprire tutti i punti (6-8 frasi)
+- Non saltare alcun fatto rilevante dai dati forniti
 
-Significato chiave 1."
-
-**Scrivi ora la descrizione più concisa possibile mantenendo tutte le risposte alle domande:**
+**Scrivi ora una descrizione completa ma non esplicitamente didattica:**
 """
             
             description = self._call_openrouter_api(prompt)
