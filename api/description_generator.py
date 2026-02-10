@@ -54,20 +54,25 @@ class DescriptionGenerator:
                 messages = [
                     {
                         "role": "system",
-                        "content": """Sei una guida museale esperta. 
-    Il tuo compito è scrivere descrizioni CONCISE ma COMPLETE delle opere.
-    Le tue descrizioni devono:
-    - Contenere tutti i concetti chiave
-    - Essere fluide e di facile lettura
-    - Eliminare informazioni superflue
-    - Avere circa 200 parole in 3 paragrafi
-    - Usare un tono informativo ma accessibile
+                        "content": """SEI UNA GUIDA MUSEALE CHE DEVE ESSERE MOLTO CONCISA.
+                        
+    REGOLE DI SCRITTURA:
+    1. SOLO FATTI, NIENTE INTERPRETAZIONI
+    2. NIENTE "invita a", "suggerisce", "esplora", "celebra"
+    3. NIENTE aggettivi descrittivi (ricca, unica, emblematica)
+    4. NIENTE riflessioni filosofiche
+    5. FRASI BREVI E DIRETTE
+    6. SOLO informazioni dall'utente
 
-    Non aggiungere biografie, contesto storico esteso o aggettivi eccessivi.
-    Concentrati sull'opera specifica."""
+    ESEMPIO DI COME SCRIVI:
+    "Artista, 'Titolo' (anno). Tecnica.
+    Elemento 1. Elemento 2.
+    Significato 1. Significato 2."
+
+    NON AGGIUNGERE NULLA DI TUO."""
                     },
                     {
-                        "role": "user", 
+                        "role": "user",
                         "content": prompt
                     }
                 ]
@@ -77,15 +82,13 @@ class DescriptionGenerator:
                     headers={
                         "Authorization": f"Bearer {self.api_key}",
                         "Content-Type": "application/json",
-                        "HTTP-Referer": "https://artestudio.streamlit.app/",
-                        "X-Title": "Arte studio",
                     },
                     data=json.dumps({
                         "model": "openai/gpt-4o-mini-2024-07-18",
                         "messages": messages,
-                        "max_tokens": 450,
-                        "temperature": 0.3,
-                        "top_p": 0.9
+                        "max_tokens": 300,
+                        "temperature": 0.0,  # ZERO creatività
+                        "top_p": 0.1
                     }),
                     timeout=30
                 )
@@ -109,48 +112,35 @@ class DescriptionGenerator:
             artwork_specific_facts = self._get_artwork_specific_facts(artwork_data['id'])
             
             prompt = f"""
-    Sei una guida museale esperta. Scrivi una descrizione concisa dell'opera per i visitatori.
+Sei una guida museale. Scrivi una descrizione MOLTO CONCISA.
 
-    **IL TUO COMPITO:**
-    Scrivere una descrizione che:
-    1. Sia CONCISA (circa 200 parole)
-    2. Contenga TUTTI i concetti chiave
-    3. Sia FLUIDA e di facile lettura
-    4. Elimini informazioni superflue
-    5. Sia informativa ma accessibile
+**REGOLE ASSOLUTE:**
+1. Solo fatti, niente interpretazioni
+2. Niente "invita lo spettatore", "suggerisce", "esplora"
+3. Niente aggettivi come "ricca", "emblematica", "unica"
+4. Niente riflessioni filosofiche
 
-    **DATI DELL'OPERA:**
-    - Artista: {artwork_data['artist']}
-    - Titolo: "{artwork_data['title']}"
-    - Data: {artwork_data['year']}
-    - Tecnica: {artwork_data['style']}
+**DATI OBBLIGATORI:**
+{artwork_data['artist']}, "{artwork_data['title']}" ({artwork_data['year']})
+{artwork_data['style']}
 
-    **CONCETTI CHIAVE DA INCLUDERE (TUTTI):**
-    {artwork_specific_facts}
+**FATTI DA INCLUIRE:**
+{artwork_specific_facts}
 
-    **COME SCRIVERE:**
-    - Usa 3 paragrafi brevi
-    - Connetti le idee naturalmente
-    - Descrivi ciò che si vede
-    - Spiega i significati importanti
-    - Mantieni un tono informativo ma piacevole
-    - Non aggiungere: biografie, contesto storico esteso, confronti, aggettivi eccessivi
+**STRUTTURA:**
+1. Identificazione (2 frasi)
+2. Descrizione visiva (3 frasi)
+3. Significato (2 frasi)
 
-    **STRUTTURA SUGGERITA:**
-    1. **Introduzione**: Presenta l'opera (artista, titolo, data, tecnica)
-    2. **Descrizione**: Cosa mostra il dipinto, composizione, elementi visivi
-    3. **Significato**: Simboli, riferimenti, importanza dell'opera
+**ESEMPIO CORRETTO:**
+"Artista, 'Titolo' (anno). Tecnica.
 
-    **ESEMPIO DI TONO:**
-    "Dipinta da [artista] nel [anno], '[titolo]' è realizzata [tecnica]. L'opera mostra [scena principale], con [elemento 1] e [elemento 2]. [Descrizione fluida]. [Significato chiave]."
+Elemento 1. Elemento 2. Elemento 3.
 
-    **RICORDA:**
-    Sei una guida che vuole far capire l'opera rapidamente. 
-    Includi ogni concetto chiave ma in modo naturale.
-    Sii conciso ma non frettoloso.
+Significato 1. Significato 2."
 
-    **Scrivi ora la descrizione:**
-    """
+**Scrivi ora:**
+"""
             
             description = self._call_openrouter_api(prompt)
             
