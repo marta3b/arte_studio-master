@@ -424,22 +424,19 @@ def render():
                     
                     **Breve spiegazione dello studio:**
 
-                        Questa ricerca esplora se le **descrizioni con personalizzazione negativa** delle opere d'arte 
-                        aiutino a ricordare meglio le informazioni rispetto alle descrizioni standard o personalizzate 
-                        rispetto agli interessi personali.
-
-                        **Gruppo C**: ha ricevuto descrizioni con personalizzazione negativa.
-
-                        **Contesto di ricerca:**
-                        Il tuo contributo verrà confrontato con i risultati di uno studio precedente che ha testato:
-                        1. **Descrizioni standard** 
-                        2. **Descrizioni personalizzate** (basate sugli interessi)
-
-                        L'obiettivo è determinare se approcci descrittivi alternativi possano migliorare 
-                        l'apprendimento e la memorizzazione dell'arte.
-
-                        **Nota tecnica:** Tutti i partecipanti hanno completato il questionario sugli interessi per uniformità metodologica, 
-                        ma i tuoi interessi specifici **non sono stati utilizzati** per personalizzare le descrizioni che hai letto.
+                        Questa ricerca esplora se le **descrizioni con personalizzazione negativa** delle opere d'arte aiutino a ricordare meglio le 
+                        informazioni rispetto alle descrizioni standard o personalizzate rispetto agli interessi personali. 
+                        
+                        **Gruppo C**: ha ricevuto descrizioni con personalizzazione negativa. 
+                                
+                        **Contesto di ricerca:** Il tuo contributo verrà confrontato con i risultati di uno studio precedente che ha testato: 
+                            1. **Descrizioni standard** 
+                            2. **Descrizioni personalizzate** (basate sugli interessi) 
+                        
+                        L'obiettivo è determinare se approcci descrittivi alternativi possano migliorare l'apprendimento e la memorizzazione dell'arte. 
+                    
+                    **Nota tecnica:** Tutti i partecipanti hanno completato il questionario sugli interessi per uniformità metodologica, 
+                                      ma i tuoi interessi specifici **non sono stati utilizzati** per personalizzare le descrizioni che hai letto.
                                         """)
                     
                     st.markdown("""
@@ -474,7 +471,7 @@ def render():
                 <div class="warning-box">
                 <div style="font-size: 1.5rem; font-weight: bold; color: #856404; margin-bottom: 15px;">ℹ️ Informazioni sulla Sperimentazione</div>
                 <p style="font-size: 1.3rem;">Hai fatto parte del <strong style="font-size: 1.4rem;">{group_name}</strong>.</p>
-                <p style="font-size: 1.3rem;">{'Le descrizioni delle opere che hai letto erano personalizzate in base ai tuoi interessi.' if st.session_state.experimental_group == 'B' else 'Le descrizioni delle opere che hai letto erano descrizioni standard, identiche per tutti i partecipanti.'}</p>
+                <p style="font-size: 1.3rem;">{'Le descrizioni delle opere che hai letto erano con personalizzazione negativa '}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 st.markdown("---")
